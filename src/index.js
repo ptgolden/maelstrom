@@ -2,4 +2,8 @@
 
 var React = require('react')
   , ReactDOM = require('react-dom')
-  , container = document.getElementById('main')
+  , Main = require('./components/main.jsx')
+
+ReactDOM.render(
+  React.createElement(Main),
+  document.getElementById('main'));
