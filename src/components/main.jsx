@@ -40,14 +40,16 @@ module.exports = React.createClass({
   },
 
   componentDidMount() {
-    var i = 0
-      , communications = Immutable.OrderedMap()
+    var communications = Immutable.OrderedMap()
+      , currentDate = null
+      , numMessages = 0
       , updateState
 
 
     updateState = () => this.setState({
       communications,
-      numMessages: communications.reduce((acc, counts) => acc + counts.get('total'), 0)
+      currentDate: new Date(currentDate),
+      numMessages
     });
 
     http.get('./public-whatwg-archive.mbox', res => res.pipe(mboxParser));
@@ -56,15 +58,17 @@ module.exports = React.createClass({
       if (!msg.from) return;
 
       communications = addCommunication(communications, msg);
-      i += 1;
 
-      if (i % 4 === 0) {
+      numMessages += 1;
+      currentDate = msg.headers.date;
+
+      if (numMessages % 4 === 0) {
         mboxParser.pause();
         setTimeout(() => mboxParser.resume(), 50);
         updateState();
       }
 
-      if (i % 16 === 0) {
+      if (numMessages % 16 === 0) {
         communications = communications.map(counts => (
           counts.update('trend', n => n <= 1 ? 0 : n - 1)
         ));
@@ -76,7 +80,7 @@ module.exports = React.createClass({
   },
 
   render() {
-    var { numMessages, communications } = this.state
+    var { numMessages, communications, currentDate } = this.state
       , sortedCommunications
 
     sortedCommunications = (communications || Immutable.OrderedMap())
@@ -105,6 +109,7 @@ module.exports = React.createClass({
     return (
       <div>
         <h2>{ numMessages } messages</h2>
+        <h2>{ currentDate && currentDate.toISOString().split('T')[0] }</h2>
         {
           [0, 25, 50].map(skip =>
             <div
