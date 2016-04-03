@@ -3,7 +3,6 @@
 var React = require('react')
   , Immutable = require('immutable')
   , http = require('http')
-  , mboxParser = require('mbox-stream')()
 
 const AUTHORS_BY_MSG_ID = {}
 
@@ -34,13 +33,19 @@ module.exports = React.createClass({
 
   getInitialState() {
     return {
+      paused: false,
+      mboxParserStream: require('mbox-stream')(),
+      mboxConsumed: false,
+
       numMessages: 0,
+      currentDate: null,
       communications: null,
     }
   },
 
   componentDidMount() {
-    var communications = Immutable.OrderedMap()
+    var { mboxParserStream } = this.state
+      , communications = Immutable.OrderedMap()
       , currentDate = null
       , numMessages = 0
       , updateState
@@ -52,9 +57,9 @@ module.exports = React.createClass({
       numMessages
     });
 
-    http.get('./public-whatwg-archive.mbox', res => res.pipe(mboxParser));
+    http.get('./public-whatwg-archive.mbox', res => res.pipe(mboxParserStream));
 
-    mboxParser.on('data', msg => {
+    mboxParserStream.on('data', msg => {
       if (!msg.from) return;
 
       communications = addCommunication(communications, msg);
@@ -63,8 +68,11 @@ module.exports = React.createClass({
       currentDate = msg.headers.date;
 
       if (numMessages % 4 === 0) {
-        mboxParser.pause();
-        setTimeout(() => mboxParser.resume(), 50);
+        mboxParserStream.pause();
+
+        setTimeout(() => {
+          if (!this.state.paused) mboxParserStream.resume();
+        }, 50)
         updateState();
       }
 
@@ -76,11 +84,23 @@ module.exports = React.createClass({
 
     });
 
-    mboxParser.on('end', updateState);
+    mboxParserStream.on('end', updateState);
+  },
+
+  handlePause() {
+    var { paused, mboxParserStream } = this.state
+
+    if (paused) {
+      mboxParserStream.resume();
+      this.setState({ paused: false });
+    } else {
+      mboxParserStream.pause();
+      this.setState({ paused: true });
+    }
   },
 
   render() {
-    var { numMessages, communications, currentDate } = this.state
+    var { numMessages, communications, currentDate, paused } = this.state
       , sortedCommunications
 
     sortedCommunications = (communications || Immutable.OrderedMap())
@@ -108,6 +128,11 @@ module.exports = React.createClass({
 
     return (
       <div>
+        <p>
+          <button onClick={this.handlePause}>
+            { paused ? 'Resume' : 'Pause' }
+          </button>
+        </p>
         <h2>{ numMessages } messages</h2>
         <h2>{ currentDate && currentDate.toISOString().split('T')[0] }</h2>
         {
