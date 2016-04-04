@@ -65,7 +65,7 @@ module.exports = React.createClass({
 
         setTimeout(() => {
           if (!this.state.paused) mboxParserStream.resume();
-        }, 50)
+        }, 25)
 
         this.setState({
           numMessages,
@@ -75,9 +75,9 @@ module.exports = React.createClass({
 
       communications = communications.map(counts => (
         counts.update('trend', n => {
-          if (n <= .05) return 0;
+          if (n < .8) return 0;
           if (n > 10) return 5 + 10 / n;
-          return n - .05;
+          return n - .03;
         })
       ));
 
