@@ -7,16 +7,16 @@ var React = require('react')
 const AUTHORS_BY_MSG_ID = {}
 
 function addCommunication(communicationsMap, msg) {
-  let author = Immutable.fromJS(msg.from[0])
-    , inReplyTo = (msg.inReplyTo || [])[0]
+  let author = msg.from[0].name
+    , inReplyTo = (msg.inReplyTo || [{}])[0]
     , pair
 
   AUTHORS_BY_MSG_ID[msg.messageId] = author;
 
   if (!inReplyTo) {
-    pair = Immutable.List([author, Math.random()]);
+    pair = Immutable.Set([author]);
   } else {
-    pair = Immutable.List([author, AUTHORS_BY_MSG_ID[inReplyTo]]);
+    pair = Immutable.Set([author, AUTHORS_BY_MSG_ID[inReplyTo]]).sort();
   }
 
   return communicationsMap.update(
@@ -48,14 +48,7 @@ module.exports = React.createClass({
       , communications = Immutable.OrderedMap()
       , currentDate = null
       , numMessages = 0
-      , updateState
 
-
-    updateState = () => this.setState({
-      communications,
-      currentDate: new Date(currentDate),
-      numMessages
-    });
 
     http.get('./public-whatwg-archive.mbox', res => res.pipe(mboxParserStream));
 
@@ -67,24 +60,31 @@ module.exports = React.createClass({
       numMessages += 1;
       currentDate = msg.headers.date;
 
-      if (numMessages % 4 === 0) {
+      if (numMessages % 1 === 0) {
         mboxParserStream.pause();
 
         setTimeout(() => {
           if (!this.state.paused) mboxParserStream.resume();
         }, 50)
-        updateState();
+
+        this.setState({
+          numMessages,
+          currentDate: new Date(currentDate)
+        });
       }
 
-      if (numMessages % 16 === 0) {
-        communications = communications.map(counts => (
-          counts.update('trend', n => n <= 1 ? 0 : n - 1)
-        ));
-      }
+      communications = communications.map(counts => (
+        counts.update('trend', n => {
+          if (n <= .05) return 0;
+          if (n > 10) return 5 + 10 / n;
+          return n - .05;
+        })
+      ));
 
+      this.setState({ communications });
     });
 
-    mboxParserStream.on('end', updateState);
+    mboxParserStream.on('end', () => this.setState({ communications }));
   },
 
   handlePause() {
@@ -105,24 +105,25 @@ module.exports = React.createClass({
 
     sortedCommunications = (communications || Immutable.OrderedMap())
       .sort((a, b) => {
-        a = a.get('total');
-        b = b.get('total');
+        a = a.get('trend');
+        b = b.get('trend');
 
         return a === b ? 0 : b > a ? 1 : -1
       })
       .toKeyedSeq()
+      .filter(ct => ct.get('trend') > 0)
       .map((ct, pair) => (
         <div key={ pair.hashCode() } className="px1" style={{
-          background: `rgba(40, 255, 40, ${ct.get('trend') / 8})`
+          background: `rgba(255, 40, 40, ${ct.get('trend') / 8})`
         }}>
           <span className="inline-block bold border-box" style={{
             width: 42,
             textAlign: 'right',
             paddingRight: 8
           }}>{ ct.get('total') }</span>
-          { pair.getIn([0, 'name']) }
-          {" ➝ "}
-          { pair.getIn([1, 'name']) || "(nobody)" }
+          { pair.toArray()[0] }
+          {", "}
+          { pair.toArray()[1] || "(nobody)" }
         </div>
       ))
 
@@ -135,16 +136,11 @@ module.exports = React.createClass({
         </p>
         <h2>{ numMessages } messages</h2>
         <h2>{ currentDate && currentDate.toISOString().split('T')[0] }</h2>
-        {
-          [0, 25, 50].map(skip =>
-            <div
-                key={skip}
-                className="left border-box px1"
-                style={{ width: '33%' }}>
-              { sortedCommunications.skip(skip).take(25).toArray() }
-            </div>
-          )
-        }
+          <div
+              className="left border-box px1"
+              style={{ width: '33%' }}>
+            { sortedCommunications.take(25).toArray() }
+          </div>
       </div>
     )
   }
