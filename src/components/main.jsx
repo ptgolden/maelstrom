@@ -4,27 +4,6 @@ var React = require('react')
   , Immutable = require('immutable')
   , http = require('http')
 
-const AUTHORS_BY_MSG_ID = {}
-
-function addCommunication(communicationsMap, msg) {
-  let author = msg.from[0].name
-    , inReplyTo = (msg.inReplyTo || [{}])[0]
-    , pair
-
-  AUTHORS_BY_MSG_ID[msg.messageId] = author;
-
-  if (!inReplyTo) {
-    pair = Immutable.Set([author]);
-  } else {
-    pair = Immutable.Set([author, AUTHORS_BY_MSG_ID[inReplyTo]]).sort();
-  }
-
-  return communicationsMap.update(
-    pair,
-    Immutable.Map({ total: 0, trend: 0 }),
-    v => v.update('total', n => n + 1).update('trend', n => n + 1))
-}
-
 module.exports = React.createClass({
   displayName: 'Main',
 
@@ -44,7 +23,8 @@ module.exports = React.createClass({
   },
 
   componentDidMount() {
-    var { mboxParserStream } = this.state
+    var addCommunication = require('../add_communication')
+      , { mboxParserStream } = this.state
       , communications = Immutable.OrderedMap()
       , currentDate = null
       , numMessages = 0
@@ -65,7 +45,7 @@ module.exports = React.createClass({
 
         setTimeout(() => {
           if (!this.state.paused) mboxParserStream.resume();
-        }, 25)
+        }, 50)
 
         this.setState({
           numMessages,
@@ -73,13 +53,14 @@ module.exports = React.createClass({
         });
       }
 
-      communications = communications.map(counts => (
-        counts.update('trend', n => {
-          if (n < .8) return 0;
-          if (n > 10) return 5 + 10 / n;
-          return n - .03;
-        })
-      ));
+      communications = communications
+        .map(countMaps => countMaps.map(counts => (
+          counts.update('trend', n => {
+            if (n < .5) return 0;
+            if (n > 10) return 5 + 10 / n;
+            return n - .16;
+          })
+        )));
 
       this.setState({ communications });
     });
@@ -100,32 +81,8 @@ module.exports = React.createClass({
   },
 
   render() {
-    var { numMessages, communications, currentDate, paused } = this.state
-      , sortedCommunications
-
-    sortedCommunications = (communications || Immutable.OrderedMap())
-      .sort((a, b) => {
-        a = a.get('trend');
-        b = b.get('trend');
-
-        return a === b ? 0 : b > a ? 1 : -1
-      })
-      .toKeyedSeq()
-      .filter(ct => ct.get('trend') > 0)
-      .map((ct, pair) => (
-        <div key={ pair.hashCode() } className="px1" style={{
-          background: `rgba(255, 40, 40, ${ct.get('trend') / 8})`
-        }}>
-          <span className="inline-block bold border-box" style={{
-            width: 42,
-            textAlign: 'right',
-            paddingRight: 8
-          }}>{ ct.get('total') }</span>
-          { pair.toArray()[0] }
-          {", "}
-          { pair.toArray()[1] || "(nobody)" }
-        </div>
-      ))
+    var CountTracker = require('./count_tracker.jsx')
+      , { numMessages, communications, currentDate, paused } = this.state
 
     return (
       <div>
@@ -136,11 +93,35 @@ module.exports = React.createClass({
         </p>
         <h2>{ numMessages } messages</h2>
         <h2>{ currentDate && currentDate.toISOString().split('T')[0] }</h2>
-          <div
-              className="left border-box px1"
-              style={{ width: '33%' }}>
-            { sortedCommunications.take(25).toArray() }
-          </div>
+
+        {
+          communications && (
+            <div>
+              <div className="left border-box px1" style={{ width: '33%' }}>
+                <h3 className="m0 mb1">Authors</h3>
+                <CountTracker countMap={communications.get('author')} />
+              </div>
+
+              <div className="left border-box px1" style={{ width: '33%' }}>
+                <h3 className="m0 mb1">Subjects</h3>
+                <CountTracker countMap={communications.get('subject')} />
+              </div>
+
+              <div className="left border-box px1" style={{ width: '33%' }}>
+                <h3 className="m0 mb1">Communication pairs</h3>
+                <CountTracker
+                    countMap={communications.get('pair')}
+                    renderValue={pair => (
+                      <span>
+                        { pair.toArray()[0] }
+                        {", "}
+                        { pair.toArray()[1] || "(nobody)" }
+                      </span>
+                    )} />
+              </div>
+            </div>
+          )
+        }
       </div>
     )
   }
