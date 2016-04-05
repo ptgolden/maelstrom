@@ -9,6 +9,7 @@
   "author": "Patrick Golden",
   "license": "AGPL-3.0",
   "dependencies": {
+    "filereader-stream": "^1.0.0",
     "immutable": "^3.7.6",
     "mbox-stream": "^3.0.0",
     "react": "^0.14.8",

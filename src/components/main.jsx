@@ -2,7 +2,6 @@
 
 var React = require('react')
   , Immutable = require('immutable')
-  , http = require('http')
 
 module.exports = React.createClass({
   displayName: 'Main',
@@ -12,114 +11,52 @@ module.exports = React.createClass({
 
   getInitialState() {
     return {
-      paused: false,
-      mboxParserStream: require('mbox-stream')(),
-      mboxConsumed: false,
-
-      numMessages: 0,
-      currentDate: null,
-      communications: null,
+      mboxStream: null
     }
   },
 
-  componentDidMount() {
-    var addCommunication = require('../add_communication')
-      , { mboxParserStream } = this.state
-      , communications = Immutable.OrderedMap()
-      , currentDate = null
-      , numMessages = 0
-
-
-    http.get('./public-whatwg-archive.mbox', res => res.pipe(mboxParserStream));
-
-    mboxParserStream.on('data', msg => {
-      if (!msg.from) return;
-
-      communications = addCommunication(communications, msg);
-
-      numMessages += 1;
-      currentDate = msg.headers.date;
-
-      if (numMessages % 1 === 0) {
-        mboxParserStream.pause();
-
-        setTimeout(() => {
-          if (!this.state.paused) mboxParserStream.resume();
-        }, 50)
-
-        this.setState({
-          numMessages,
-          currentDate: new Date(currentDate)
-        });
-      }
-
-      communications = communications
-        .map(countMaps => countMaps.map(counts => (
-          counts.update('trend', n => {
-            if (n < .5) return 0;
-            if (n > 10) return 5 + 10 / n;
-            return n - .16;
-          })
-        )));
-
-      this.setState({ communications });
-    });
-
-    mboxParserStream.on('end', () => this.setState({ communications }));
+  handleClickUpload() {
+    this.refs.upload.dispatchEvent(new MouseEvent('click'));
   },
 
-  handlePause() {
-    var { paused, mboxParserStream } = this.state
+  handleUploadFile(e) {
+    var fileReaderStream = require('filereader-stream')
+      , file = e.target.files[0]
 
-    if (paused) {
-      mboxParserStream.resume();
-      this.setState({ paused: false });
-    } else {
-      mboxParserStream.pause();
-      this.setState({ paused: true });
-    }
+    this.setState({ mboxStream: fileReaderStream(file) });
   },
 
   render() {
-    var CountTracker = require('./count_tracker.jsx')
-      , { numMessages, communications, currentDate, paused } = this.state
+    var Stream = require('./stream.jsx')
+      , { mboxStream } = this.state
 
     return (
       <div>
-        <p>
-          <button onClick={this.handlePause}>
-            { paused ? 'Resume' : 'Pause' }
-          </button>
-        </p>
-        <h2>{ numMessages } messages</h2>
-        <h2>{ currentDate && currentDate.toISOString().split('T')[0] }</h2>
+        <h1>maelstrom</h1>
 
         {
-          communications && (
+          !mboxStream && (
             <div>
-              <div className="left border-box px1" style={{ width: '33%' }}>
-                <h3 className="m0 mb1">Authors</h3>
-                <CountTracker countMap={communications.get('author')} />
-              </div>
+              <p>
+                <button
+                    className="btn btn-primary"
+                    onClick={this.handleClickUpload}>
+                  upload mail archive
+                </button>
+              </p>
 
-              <div className="left border-box px1" style={{ width: '33%' }}>
-                <h3 className="m0 mb1">Subjects</h3>
-                <CountTracker countMap={communications.get('subject')} />
-              </div>
-
-              <div className="left border-box px1" style={{ width: '33%' }}>
-                <h3 className="m0 mb1">Communication pairs</h3>
-                <CountTracker
-                    countMap={communications.get('pair')}
-                    renderValue={pair => (
-                      <span>
-                        { pair.toArray()[0] }
-                        {", "}
-                        { pair.toArray()[1] || "(nobody)" }
-                      </span>
-                    )} />
-              </div>
+              <input
+                  type="file"
+                  ref="upload"
+                  onChange={this.handleUploadFile}
+                  style={{ position: 'absolute', top: -1000 }} />
             </div>
+          )
+        }
+
+        {
+          mboxStream && (
+            <Stream mboxStream={mboxStream} />
           )
         }
       </div>
