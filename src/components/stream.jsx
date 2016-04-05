@@ -20,6 +20,10 @@ module.exports = React.createClass({
       }),
       mboxConsumed: false,
 
+      decayStep: .16,
+      trendinessThreshhold: .5,
+      msgStreamPause: 50,
+
       numMessages: 0,
       currentDate: null,
       communications: null,
@@ -29,7 +33,7 @@ module.exports = React.createClass({
   componentDidMount() {
     var addCommunication = require('../add_communication')
       , { mboxStream } = this.props
-      , { mboxParserStream } = this.state
+      , { mboxParserStream, decayStep, msgStreamPause, trendinessThreshhold } = this.state
       , communications = Immutable.OrderedMap()
       , currentDate = null
       , numMessages = 0
@@ -52,7 +56,7 @@ module.exports = React.createClass({
 
         setTimeout(() => {
           if (!this.state.paused) mboxParserStream.resume();
-        }, 50)
+        }, msgStreamPause)
 
         this.setState({
           numMessages,
@@ -63,9 +67,9 @@ module.exports = React.createClass({
       communications = communications
         .map(countMaps => countMaps.map(counts => (
           counts.update('trend', n => {
-            if (n < .5) return 0;
+            if (n < trendinessThreshhold) return 0;
             if (n > 10) return 5 + 10 / n;
-            return n - .16;
+            return n - decayStep;
           })
         )));
 
