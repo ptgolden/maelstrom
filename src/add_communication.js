@@ -34,7 +34,7 @@ module.exports = function addCommunication(communications, msg) {
     pair = Immutable.Set([author, AUTHORS_BY_MSG_ID[inReplyTo]]).sort();
   }
 
-  subject = msg.subject.replace(RE_REGEX, '');
+  subject = (msg.subject || '(no_subject)').replace(RE_REGEX, '');
 
   return communications
     .update('pair', Immutable.Map(), updateMapCounts(pair))
