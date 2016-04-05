@@ -22,7 +22,7 @@ module.exports = React.createClass({
 
       decayStep: .16,
       trendinessThreshhold: .5,
-      msgStreamPause: 50,
+      msgStreamPause: 200,
 
       numMessages: 0,
       currentDate: null,
@@ -33,7 +33,7 @@ module.exports = React.createClass({
   componentDidMount() {
     var addCommunication = require('../add_communication')
       , { mboxStream } = this.props
-      , { mboxParserStream, decayStep, msgStreamPause, trendinessThreshhold } = this.state
+      , { mboxParserStream } = this.state
       , communications = Immutable.OrderedMap()
       , currentDate = null
       , numMessages = 0
@@ -45,6 +45,8 @@ module.exports = React.createClass({
 
     mboxParserStream.on('data', msg => {
       if (!msg.from) return;
+
+      var { decayStep, msgStreamPause, trendinessThreshhold } = this.state
 
       communications = addCommunication(communications, msg);
 
@@ -93,21 +95,59 @@ module.exports = React.createClass({
 
   render() {
     var CountTracker = require('./count_tracker.jsx')
-      , { numMessages, communications, currentDate, paused } = this.state
+      , {
+        communications,
+        numMessages,
+        currentDate,
+        paused,
+
+        decayStep,
+        msgStreamPause
+      } = this.state
 
     return (
       <div>
-        <p>
+        <div>
           <button onClick={this.handlePause}>
             { paused ? 'Resume' : 'Pause' }
           </button>
-        </p>
-        <h2>{ numMessages } messages</h2>
-        <h2>{ currentDate && currentDate.toISOString().split('T')[0] }</h2>
+
+          <label className="ml1">
+            Rate of decay
+            <input
+                type="range"
+                value={decayStep}
+                onChange={ e => this.setState({ decayStep: e.target.value })}
+                min=".02"
+                max="1"
+                step=".05" />
+          </label>
+
+          <label className="ml1">
+            Speed
+            <input
+                type="range"
+                value={420 - msgStreamPause}
+                onChange={ e => this.setState({ msgStreamPause: 420 - parseInt(e.target.value) })}
+                min="0"
+                max="420"
+                />
+          </label>
+
+        </div>
+
+        <hr />
+
+        <div className="clearfix">
+          <h2 className="left">{ numMessages } messages</h2>
+          <h2 className="right">Last message at: { currentDate && currentDate.toISOString().split('T')[0] }</h2>
+        </div>
+
+        <hr />
 
         {
           communications && (
-            <div>
+            <div className="clearfix">
               <div className="left border-box px1" style={{ width: '33%' }}>
                 <h3 className="m0 mb1">Authors</h3>
                 <CountTracker countMap={communications.get('author')} />

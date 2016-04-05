@@ -1,7 +1,6 @@
 "use strict";
 
 var React = require('react')
-  , Immutable = require('immutable')
 
 module.exports = React.createClass({
   displayName: 'Main',
@@ -41,7 +40,7 @@ module.exports = React.createClass({
                 <button
                     className="btn btn-primary"
                     onClick={this.handleClickUpload}>
-                  upload mail archive
+                  choose mail archive
                 </button>
               </p>
 
