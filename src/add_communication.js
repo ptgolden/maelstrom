@@ -21,7 +21,7 @@ const sortCountMap = map => map.sort((a, b) => {
 
 
 module.exports = function addCommunication(communications, msg) {
-  let author = msg.from[0].name
+  let author = msg.from[0].name || msg.from[0].address
     , inReplyTo = (msg.inReplyTo || [{}])[0]
     , pair
     , subject
