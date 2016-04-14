@@ -2,6 +2,7 @@
 
 var React = require('react')
   , Immutable = require('immutable')
+  , h = require('react-hyperscript')
   , { MailParser } = require('mbox-stream/node_modules/mailparser')
 
 
@@ -94,7 +95,7 @@ module.exports = React.createClass({
   },
 
   render() {
-    var CountTracker = require('./count_tracker.jsx')
+    var CountTracker = require('./count_tracker')
       , {
         communications,
         numMessages,
@@ -106,74 +107,89 @@ module.exports = React.createClass({
       } = this.state
 
     return (
-      <div>
-        <div>
-          <button onClick={this.handlePause}>
-            { paused ? 'Resume' : 'Pause' }
-          </button>
+      h('div', [
+        h('div', [
+          h('button', {
+            onClick: this.handlePause
+          }, paused ? 'Resume' : 'Pause'),
 
-          <label className="ml1">
-            Rate of decay
-            <input
-                type="range"
-                value={decayStep}
-                onChange={ e => this.setState({ decayStep: e.target.value })}
-                min=".02"
-                max="1"
-                step=".05" />
-          </label>
+          h('label .ml1', [
+            'Rate of decay',
+            h('input', {
+              type: 'range',
+              value: decayStep,
+              onChange: e => this.setState({ decayStep: e.target.value }),
+              min: .02,
+              max: 1,
+              step: .05
+            })
+          ]),
 
-          <label className="ml1">
-            Speed
-            <input
-                type="range"
-                value={420 - msgStreamPause}
-                onChange={ e => this.setState({ msgStreamPause: 420 - parseInt(e.target.value) })}
-                min="0"
-                max="420"
-                />
-          </label>
+          h('label .ml1', [
+            'Speed',
+            h('input', {
+              type: 'range',
+              value: 420 - msgStreamPause,
+              onChange: e => this.setState({ msgStreamPause: 420 - parseInt(e.target.value) }),
+              min: 0,
+              max: 420
+            })
+          ])
+        ]),
 
-        </div>
+        h('hr'),
 
-        <hr />
+        h('div .clearfix', [
+          h('h2 .left', `${numMessages} messages`),
+          h('h2 .right', `
+            Last message at:
+            ${currentDate && currentDate.toISOString().split('T')[0]}
+          `)
+        ]),
 
-        <div className="clearfix">
-          <h2 className="left">{ numMessages } messages</h2>
-          <h2 className="right">Last message at: { currentDate && currentDate.toISOString().split('T')[0] }</h2>
-        </div>
+        h('hr'),
 
-        <hr />
+        communications && h('div.clearfix', [
+          h('div .left .border-box .px1', {
+            style: {
+              width: '33%'
+            },
+          }, [
+            h('h3 .m0 .mb1', 'Authors'),
+            h(CountTracker, {
+              countMap: communications.get('author')
+            })
+          ]),
 
-        {
-          communications && (
-            <div className="clearfix">
-              <div className="left border-box px1" style={{ width: '33%' }}>
-                <h3 className="m0 mb1">Authors</h3>
-                <CountTracker countMap={communications.get('author')} />
-              </div>
+          h('div .left .border-box .px1', {
+            style: {
+              width: '33%'
+            },
+          }, [
+            h('h3 .m0 .mb1', 'Subjects'),
+            h(CountTracker, {
+              countMap: communications.get('subject')
+            })
+          ]),
 
-              <div className="left border-box px1" style={{ width: '33%' }}>
-                <h3 className="m0 mb1">Subjects</h3>
-                <CountTracker countMap={communications.get('subject')} />
-              </div>
-
-              <div className="left border-box px1" style={{ width: '33%' }}>
-                <h3 className="m0 mb1">Communication pairs</h3>
-                <CountTracker
-                    countMap={communications.get('pair')}
-                    renderValue={pair => (
-                      <span>
-                        { pair.toArray()[0] }
-                        {", "}
-                        { pair.toArray()[1] || "(nobody)" }
-                      </span>
-                    )} />
-              </div>
-            </div>
-          )
-        }
-      </div>
+          h('div.left.border-box.px1', {
+            style: {
+              width: '33%'
+            },
+          }, [
+            h('h3 .m0 .mb1', 'Communication pairs'),
+            h(CountTracker, {
+              countMap: communications.get('pair'),
+              renderValue: pair => h('span', [
+                pair.toArray()[0],
+                ', ',
+                pair.toArray()[1] || "(nobody)"
+              ])
+            })
+          ])
+        ])
+    ])
     )
   }
+
 });

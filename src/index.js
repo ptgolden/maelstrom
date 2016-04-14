@@ -2,7 +2,7 @@
 
 var React = require('react')
   , ReactDOM = require('react-dom')
-  , Main = require('./components/main.jsx')
+  , Main = require('./components/main.js')
 
 ReactDOM.render(
   React.createElement(Main),

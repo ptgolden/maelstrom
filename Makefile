@@ -37,7 +37,7 @@ ZIPPED_FILES = $(MINIFIED_VERSIONED_JS_BUNDLE) \
 POSTCSS_OPTS = --use postcss-import \
 	       --use postcss-cssnext
 
-JS_FILES = $(shell find src/ -type f -name *js -o -name *jsx)
+JS_FILES = $(shell find src/ -type f -name *js)
 CSS_FILES = $(shell find style/ -type f -name *css)
 
 
