@@ -2,9 +2,9 @@
 #  Variables  #
 ###############
 
-PROJECT_NAME=mbox-browser
+PROJECT_NAME = maelstrom
 
-NPM_BIN=node_modules/.bin
+NPM_BIN = node_modules/.bin
 
 BROWSERIFY_ENTRY = src/index.js
 CSS_ENTRY = style/main.css
@@ -28,7 +28,7 @@ VERSIONED_ZIPFILE = dist/$(VERSIONED_DIRECTORY).zip
 
 
 ZIPPED_FILES = $(MINIFIED_VERSIONED_JS_BUNDLE) \
-	       $(MINIFIED_VERSIONED_CSS_BUNDLE) \
+	       $(VERSIONED_CSS_BUNDLE) \
 	       index.html \
 	       LICENSE \
 	       README.md
