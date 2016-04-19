@@ -11,18 +11,17 @@ const keyFor = value => (
     value
 );
 
-CountTracker = ({ countMap, renderValue, limit=25 }) => (
+CountTracker = ({ trendMap, countMap, renderValue, limit=25 }) => (
   h('div', (
-    countMap
+    trendMap
       .toKeyedSeq()
-      .filter(counts => counts.get('trend') > 0)
-      .map((counts, value) => (
+      .map((trend, value) => (
         h('div .px1 .truncate', {
           key: keyFor(value),
           style: {
             paddingTop: 3,
             paddingBottom: 3,
-            background: `rgba(255, 40, 40, ${counts.get('trend') / 8})`
+            background: `rgba(255, 40, 40, ${trend / 8})`
           }
         }, [
           h('span .inline-block .bold .border-box', {
@@ -31,7 +30,7 @@ CountTracker = ({ countMap, renderValue, limit=25 }) => (
               textAlign: 'right',
               paddingRight: 8
             }
-          }, counts.get('total')),
+          }, countMap.get(value)),
 
           renderValue ? renderValue(value) : value
         ])

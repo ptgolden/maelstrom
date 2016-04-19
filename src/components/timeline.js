@@ -33,6 +33,8 @@ module.exports = React.createClass({
         .bins(x.ticks(100))(dates)
     );
 
+    data.pop();
+
     const y = (
       d3.scale.linear()
         .range([height - padding, 0])
@@ -43,7 +45,7 @@ module.exports = React.createClass({
       d3.svg.line()
         .x(d => x(d.x))
         .y(d => y(d.y))
-        .interpolate('monotone')
+        .interpolate('step')
     )
 
     t.select('.x-axis').call(

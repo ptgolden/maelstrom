@@ -24,6 +24,7 @@ module.exports = React.createClass({
       decayStep: .16,
       trendinessThreshhold: .5,
       msgStreamPause: 200,
+      stepSize: 1,
 
       numMessages: 0,
       currentDate: null,
@@ -33,14 +34,29 @@ module.exports = React.createClass({
   },
 
   componentDidMount() {
-    var addCommunication = require('../add_communication')
+    var processMessage = require('../process_message')
       , { mboxStream } = this.props
       , { mboxParserStream } = this.state
-      , communications = Immutable.OrderedMap()
+      , counts = Immutable.OrderedMap()
+      , trends = Immutable.OrderedMap()
       , dates = Immutable.List()
       , currentDate = null
       , numMessages = 0
 
+    const internalState = () => ({
+      numMessages,
+      currentDate,
+      counts,
+      trends,
+      dates
+    });
+
+    ['pair', 'author', 'subject'].forEach(attr => {
+      counts = counts.set(attr, Immutable.Map());
+      trends = trends.set(attr, Immutable.OrderedMap());
+    });
+
+    const increment = n => n + 1;
 
     mboxStream.pipe(mboxParserStream);
 
@@ -49,38 +65,52 @@ module.exports = React.createClass({
     mboxParserStream.on('data', msg => {
       if (!msg.from) return;
 
-      var { decayStep, msgStreamPause, trendinessThreshhold } = this.state
+      const data = processMessage(msg);
 
-      communications = addCommunication(communications, msg);
+      const { msgStreamPause, stepSize } = this.state;
+
+      ['pair', 'author', 'subject'].forEach(attr => {
+        const val = data[attr];
+
+        counts = counts.updateIn([attr, val], 0, increment);
+        trends = trends.updateIn([attr, val], 0, increment);
+      });
 
       numMessages += 1;
-      currentDate = new Date(msg.headers.date);
 
+      currentDate = new Date(msg.headers.date);
       dates = dates.push(currentDate);
 
-      if (numMessages % 1 === 0) {
+      // Decay the trend map, remove now-empty entries, and re-sort
+      trends = trends.map(this.decayTrendMap);
+
+      if (numMessages % stepSize === 0) {
         mboxParserStream.pause();
 
         setTimeout(() => {
           if (!this.state.paused) mboxParserStream.resume();
         }, msgStreamPause)
 
-        this.setState({ numMessages, currentDate });
+        this.setState(internalState());
       }
-
-      communications = communications
-        .map(countMaps => countMaps.map(counts => (
-          counts.update('trend', n => {
-            if (n < trendinessThreshhold) return 0;
-            if (n > 10) return 5 + 10 / n;
-            return n - decayStep;
-          })
-        )));
-
-      this.setState({ communications, dates });
     });
 
-    mboxParserStream.on('end', () => this.setState({ communications, dates }));
+    mboxParserStream.on('end', () => this.setState(internalState()));
+  },
+
+  decayTrendMap(trendMap) {
+    const { decayStep, trendinessThreshhold } = this.state
+
+    return trendMap
+      .map(n =>
+        n < trendinessThreshhold
+          ? 0
+          : n < 10
+            ? n - decayStep
+            : 5 + 10 / n
+      )
+      .filter(n => n)
+      .sort((a, b) => a === b ? 0 : b > a ? 1 : -1)
   },
 
   handlePause() {
@@ -96,16 +126,18 @@ module.exports = React.createClass({
   },
 
   render() {
-    var CountTracker = require('./count_tracker')
+    var Table = require('./table')
       , Timeline = require('./timeline')
       , {
-        communications,
+        trends,
+        counts,
         numMessages,
         currentDate,
         paused,
 
         dates,
         decayStep,
+        stepSize,
         msgStreamPause
       } = this.state
 
@@ -115,6 +147,17 @@ module.exports = React.createClass({
           h('button', {
             onClick: this.handlePause
           }, paused ? 'Resume' : 'Pause'),
+
+          h('label .ml1', [
+            'Step size ',
+            h('input', {
+              type: 'number',
+              value: stepSize,
+              onChange: e => this.setState({ stepSize: e.target.value }),
+              min: 1,
+              max: 25
+            })
+          ]),
 
           h('label .ml1', [
             'Rate of decay',
@@ -156,45 +199,7 @@ module.exports = React.createClass({
 
         h('hr'),
 
-        communications && h('div .clearfix', [
-          h('div .left .border-box .px1', {
-            style: {
-              width: '33%'
-            },
-          }, [
-            h('h3 .m0 .mb1', 'Authors'),
-            h(CountTracker, {
-              countMap: communications.get('author')
-            })
-          ]),
-
-          h('div .left .border-box .px1', {
-            style: {
-              width: '33%'
-            },
-          }, [
-            h('h3 .m0 .mb1', 'Subjects'),
-            h(CountTracker, {
-              countMap: communications.get('subject')
-            })
-          ]),
-
-          h('div.left.border-box.px1', {
-            style: {
-              width: '33%'
-            },
-          }, [
-            h('h3 .m0 .mb1', 'Communication pairs'),
-            h(CountTracker, {
-              countMap: communications.get('pair'),
-              renderValue: pair => h('span', [
-                pair.toArray()[0],
-                ', ',
-                pair.toArray()[1] || "(nobody)"
-              ])
-            })
-          ])
-        ])
+        numMessages && h(Table, { trends, counts })
     ])
     )
   }
