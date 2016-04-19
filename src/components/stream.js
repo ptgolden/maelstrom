@@ -28,6 +28,7 @@ module.exports = React.createClass({
       numMessages: 0,
       currentDate: null,
       communications: null,
+      dates: null,
     }
   },
 
@@ -36,6 +37,7 @@ module.exports = React.createClass({
       , { mboxStream } = this.props
       , { mboxParserStream } = this.state
       , communications = Immutable.OrderedMap()
+      , dates = Immutable.List()
       , currentDate = null
       , numMessages = 0
 
@@ -52,7 +54,9 @@ module.exports = React.createClass({
       communications = addCommunication(communications, msg);
 
       numMessages += 1;
-      currentDate = msg.headers.date;
+      currentDate = new Date(msg.headers.date);
+
+      dates = dates.push(currentDate);
 
       if (numMessages % 1 === 0) {
         mboxParserStream.pause();
@@ -61,10 +65,7 @@ module.exports = React.createClass({
           if (!this.state.paused) mboxParserStream.resume();
         }, msgStreamPause)
 
-        this.setState({
-          numMessages,
-          currentDate: new Date(currentDate)
-        });
+        this.setState({ numMessages, currentDate });
       }
 
       communications = communications
@@ -76,10 +77,10 @@ module.exports = React.createClass({
           })
         )));
 
-      this.setState({ communications });
+      this.setState({ communications, dates });
     });
 
-    mboxParserStream.on('end', () => this.setState({ communications }));
+    mboxParserStream.on('end', () => this.setState({ communications, dates }));
   },
 
   handlePause() {
@@ -96,12 +97,14 @@ module.exports = React.createClass({
 
   render() {
     var CountTracker = require('./count_tracker')
+      , Timeline = require('./timeline')
       , {
         communications,
         numMessages,
         currentDate,
         paused,
 
+        dates,
         decayStep,
         msgStreamPause
       } = this.state
@@ -149,7 +152,11 @@ module.exports = React.createClass({
 
         h('hr'),
 
-        communications && h('div.clearfix', [
+        dates && h(Timeline, { dates }),
+
+        h('hr'),
+
+        communications && h('div .clearfix', [
           h('div .left .border-box .px1', {
             style: {
               width: '33%'
