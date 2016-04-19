@@ -32,11 +32,18 @@ module.exports = React.createClass({
         mboxStream
           ? h(Stream, { mboxStream })
           : h('div', [
+              h('h1', 'maelstrom'),
+
               h('p', [
                 h('button .btn .btn-primary', {
                   onClick: this.handleClickUpload
                 }, 'choose mail archive')
               ]),
+
+              h('p', `
+                All processing of mail files is  done on your own computer.
+                No files will be uploaded to a remote server.
+              `),
 
               h('input .absolute', {
                 type: 'file',
