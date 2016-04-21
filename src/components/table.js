@@ -1,9 +1,9 @@
 "use strict";
 
-var h = require('react-hyperscript')
-  , CountTracker = require('./count_tracker')
+const h = require('react-hyperscript')
+    , CountTracker = require('./count_tracker')
 
-module.exports = ({ trends, counts }) => (
+module.exports = ({ snapshot: { trends, counts }}) =>
   h('div .clearfix', [
     h('div .left .border-box .px1', {
       style: {
@@ -24,8 +24,8 @@ module.exports = ({ trends, counts }) => (
     }, [
       h('h3 .m0 .mb1', 'Subjects'),
       h(CountTracker, {
-        trendMap: trends.get('subject'),
-        countMap: counts.get('subject')
+        trendMap: trends.get('threadTitle'),
+        countMap: counts.get('threadTitle')
       })
     ]),
 
@@ -46,4 +46,3 @@ module.exports = ({ trends, counts }) => (
       })
     ])
   ])
-);

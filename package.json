@@ -15,7 +15,8 @@
     "mbox-stream": "^3.0.0",
     "react": "^0.14.8",
     "react-dom": "^0.14.8",
-    "react-hyperscript": "^2.4.0"
+    "react-hyperscript": "^2.4.0",
+    "through": "^2.3.8"
   },
   "devDependencies": {
     "babel": "^6.5.2",

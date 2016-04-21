@@ -1,8 +1,8 @@
 "use strict";
 
-var d3 = require('d3')
-  , h = require('react-hyperscript')
-  , React = require('react')
+const d3 = require('d3')
+    , h = require('react-hyperscript')
+    , React = require('react')
 
 const width = 1600
     , height = 200
@@ -12,7 +12,9 @@ module.exports = React.createClass({
   name: 'Timeline',
 
   getInitialState() {
-    return { rendering: false }
+    return {
+      rendering: false
+    }
   },
 
   update() {
@@ -20,7 +22,7 @@ module.exports = React.createClass({
 
     const svg = d3.select(this.refs.svg)
         , t = svg.transition().duration(420)
-        , dates = this.props.dates.toArray()
+        , dates = this.props.snapshot.dates.toArray()
 
     const x = (
       d3.time.scale()

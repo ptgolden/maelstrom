@@ -1,7 +1,8 @@
 "use strict";
 
-var React = require('react')
-  , h = require('react-hyperscript')
+const React = require('react')
+    , h = require('react-hyperscript')
+    , { MailParser } = require('mbox-stream/node_modules/mailparser')
 
 module.exports = React.createClass({
   displayName: 'Main',
@@ -17,15 +18,18 @@ module.exports = React.createClass({
   },
 
   handleUploadFile(e) {
-    var fileReaderStream = require('filereader-stream')
-      , file = e.target.files[0]
+    const mboxStream = require('filereader-stream')(e.target.files[0])
+      .pipe(require('mbox-stream')({
+        mailparser: new MailParser({ streamAttachments: true })
+      }))
+      .pipe(require('../transform_messages')())
 
-    this.setState({ mboxStream: fileReaderStream(file) });
+    this.setState({ mboxStream })
   },
 
   render() {
-    var Stream = require('./stream')
-      , { mboxStream } = this.state
+    const Stream = require('./stream')
+        , { mboxStream } = this.state
 
     return (
       h('div', [

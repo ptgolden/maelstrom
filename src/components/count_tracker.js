@@ -1,9 +1,8 @@
 "use strict";
 
-var h = require('react-hyperscript')
-  , React = require('react')
-  , Immutable = require('immutable')
-  , CountTracker
+const h = require('react-hyperscript')
+    , React = require('react')
+    , Immutable = require('immutable')
 
 const keyFor = value => (
   value instanceof Immutable.Iterable ?
@@ -11,7 +10,7 @@ const keyFor = value => (
     value
 );
 
-CountTracker = ({ trendMap, countMap, renderValue, limit=25 }) => (
+const CountTracker = ({ trendMap, countMap, renderValue, limit=25 }) =>
   h('div', (
     trendMap
       .toKeyedSeq()
@@ -38,7 +37,6 @@ CountTracker = ({ trendMap, countMap, renderValue, limit=25 }) => (
       .take(limit)
       .toArray()
   ))
-);
 
 CountTracker.propTypes = {
   countMap: React.PropTypes.instanceOf(Immutable.Map),
