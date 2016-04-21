@@ -4,3 +4,11 @@
 @import 'basscss-addons/modules/colors';
 @import 'basscss-addons/modules/background-colors';
 @import 'basscss-addons/modules/forms';
+
+.x-axis path,
+.y-axis path,
+.x-axis .tick line,
+.y-axis .tick line {
+  stroke: black;
+  fill: none;
+}

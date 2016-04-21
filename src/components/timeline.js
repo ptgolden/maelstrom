@@ -93,7 +93,7 @@ module.exports = React.createClass({
           }),
           h('g .y-axis'),
           h('path .data', {
-            stroke: 'red',
+            stroke: 'darkblue',
             fill: 'none'
           })
         ])
