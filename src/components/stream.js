@@ -15,7 +15,7 @@ module.exports = React.createClass({
 
   getInitialState() {
     return {
-      paused: false,
+      paused: true,
       mboxParserStream: require('mbox-stream')({
         mailparser: new MailParser({ streamAttachments: true })
       }),
@@ -60,7 +60,7 @@ module.exports = React.createClass({
 
     mboxStream.pipe(mboxParserStream);
 
-    // http.get('./public-whatwg-archive.mbox', res => res.pipe(mboxParserStream));
+    mboxParserStream.pause();
 
     mboxParserStream.on('data', msg => {
       if (!msg.from) return;
