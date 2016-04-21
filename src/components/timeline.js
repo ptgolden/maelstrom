@@ -33,7 +33,7 @@ module.exports = React.createClass({
         .bins(x.ticks(100))(dates)
     );
 
-    data.pop();
+    // data.pop();
 
     const y = (
       d3.scale.linear()
