@@ -1,6 +1,6 @@
 "use strict";
 
-const through = require('through')
+const through = require('through2')
     , Immutable = require('immutable')
     , { StreamState } = require('./records')
 
@@ -10,7 +10,7 @@ const REPLY_PATTERN = /re:\s+/i
 const increment = n => n + 1
 
 
-// Functions for gathering message metadata
+/* Functions for gathering message metadata */
 const messageAuthor = msg => msg.from[0].name || msg.from[0].address
 
 const messageMeasurements = ({ authorsByMsgID }, msg) => {
@@ -26,7 +26,7 @@ const messageMeasurements = ({ authorsByMsgID }, msg) => {
 }
 
 
-// Functions for updating the state
+/* Functions for updating the state */
 const updateCounts = measurements => counts =>
   counts.map((countMap, attr) =>
     countMap.update(measurements[attr], 0, increment))
@@ -39,8 +39,7 @@ const decayTrendMap = ({ decayStep, lowerLimit }) => trends =>
           ? 0
           : n < 10
             ? n - decayStep
-            : 5 + 10 / n
-      )
+            : 5 + 10 / n)
       .filter(n => n)
       .sort((a, b) => a === b ? 0 : b > a ? 1 : -1))
 
@@ -64,19 +63,17 @@ const updateStreamState = (_state, msg) => _state.withMutations(state =>
 module.exports = function () {
   let streamState = new StreamState();
 
-  const stream = through(
-    function write(msg) {
-      if (!msg.from) return;
+  const stream = through.obj(function write(msg, enc, next) {
+    if (msg.from) {
       streamState = updateStreamState(streamState, msg);
 
-      // We will maintain our own state internally, but only expose the
-      // snapshot itself to the stream consumer.
-      this.queue(streamState.snapshot);
-    },
-    function end() {
-      this.queue(null);
+      // Only expose the snapshot to the stream consumer, even though we keep
+      // more local state than that.
+      this.push(streamState.snapshot);
     }
-  );
+
+    next();
+  });
 
   Object.defineProperty(stream, 'decayStep', {
     get: () => streamState.decayStep,

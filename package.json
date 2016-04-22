@@ -16,7 +16,7 @@
     "react": "^0.14.8",
     "react-dom": "^0.14.8",
     "react-hyperscript": "^2.4.0",
-    "through": "^2.3.8"
+    "through2": "^2.0.1"
   },
   "devDependencies": {
     "babel": "^6.5.2",
